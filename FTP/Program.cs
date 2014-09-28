@@ -128,14 +128,14 @@ namespace FTP
 			}
 
 			// Have the user log in with the username.
-			Console.WriteLine("Name (" + server + ":" + Environment.UserName + "): ");
+			Console.Write("Name (" + server + ":" + Environment.UserName + "): ");
 			String user = Console.ReadLine();
 			writer.Write("USER " + user.Trim() + LINEEND);
 			writer.Flush();
 			ReadOutput(reader);
 
 			// Have the user log in with the password.
-			Console.WriteLine("Password: ");
+			Console.Write("Password: ");
 			String password = Console.ReadLine();
 			writer.Write("PASS " + password.Trim() + LINEEND);
 			writer.Flush();
@@ -174,22 +174,30 @@ namespace FTP
                     switch (cmd)
                     {
                         case ASCII:
+							if (debug)
+								Console.WriteLine("---> TYPE A");
 							RunCommand(writer, reader, argv[0]);
 							binary = false;
                             break;
 
                         case BINARY:
+							if (debug)
+								Console.WriteLine("---> TYPE I");
 							RunCommand(writer, reader, argv[0]);
 							binary = true;
                             break;
 
                         case CD:
+							RunCommand(writer, reader, argv[0], argv[1]);
                             break;
 
                         case CDUP:
+							RunCommand(writer, reader, argv[0], argv[1]);
                             break;
 
                         case DEBUG:
+							debug = debug ? false : true;
+							Console.WriteLine("Debugging on (debug=1).");
                             break;
 
                         case DIR:
