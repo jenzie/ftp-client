@@ -296,25 +296,36 @@ namespace FTP
             } while (!eof);
         }
 
+		/**
+		 * RunCommand - Sends the given command and argument to the server 
+		 * using the writer, and calls the print method.
+		 * writer - the networkstream's stream writer that writes to the server.
+		 * reader - the networkstream's stream reader that reads the server.
+		 * command - the command to be understood by the server.
+		 * arg - the argument associated with the command.
+		 */
 		public static void RunCommand(StreamWriter writer, StreamReader reader, 
-			String command, String arg1 = null)
+			String command, String arg = null)
 		{
-			if (arg1 == null)
+			if (arg == null)
 				writer.Write(command + LINEEND);
 			else
-				writer.Write(command + " " + arg1 + LINEEND);
+				writer.Write(command + " " + arg + LINEEND);
 			
 			writer.Flush();
 			ReadOutput(reader);
 		}
 
-		public static void ReadOutput(StreamReader reader, bool print = true)
+		/**
+		 * ReadOutput - Reads the messages from the server.
+		 * reader - the networkstream's stream reader that reads the server.
+		 **/
+		public static void ReadOutput(StreamReader reader)
 		{
 			while (true)
 			{
 				String output = reader.ReadLine();
-				if (print)
-					Console.WriteLine(output);
+				Console.WriteLine(output);
 
 				// Check for end of message.
 				string[] outp = output.Split(' ');
