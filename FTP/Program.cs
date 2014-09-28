@@ -141,6 +141,19 @@ namespace FTP
 			writer.Flush();
 			ReadOutput(reader);
 
+			// Display the system type.
+			writer.Write("SYST" + LINEEND);
+			writer.Flush();
+			String output = reader.ReadLine();
+			Console.WriteLine("Remote system type is " + output.Split(' ')[1]);
+
+			// Display the default file transfer mode.
+			binary = true;
+			writer.Write("TYPE I" + LINEEND);
+			writer.Flush();
+			reader.ReadLine();
+			Console.WriteLine("Using binary mode to transfer files.");
+
             // Command line is done - accept commands.
             do
             {
@@ -176,23 +189,27 @@ namespace FTP
                         case ASCII:
 							if (debug)
 								Console.WriteLine("---> TYPE A");
-							RunCommand(writer, reader, argv[0]);
+							RunCommand(writer, reader, "TYPE A");
 							binary = false;
                             break;
 
                         case BINARY:
 							if (debug)
 								Console.WriteLine("---> TYPE I");
-							RunCommand(writer, reader, argv[0]);
+							RunCommand(writer, reader, "TYPE I");
 							binary = true;
                             break;
 
                         case CD:
-							RunCommand(writer, reader, argv[0], argv[1]);
+							if (argv.Length != 2)
+								RunCommand(writer, reader, "CWD", "foo");
+							RunCommand(writer, reader, "CWD", argv[1]);
                             break;
 
                         case CDUP:
-							RunCommand(writer, reader, argv[0], argv[1]);
+							if (argv.Length != 2)
+								RunCommand(writer, reader, "CDUP", "foo");
+							RunCommand(writer, reader, "CDUP", argv[1]);
                             break;
 
                         case DEBUG:
@@ -201,9 +218,15 @@ namespace FTP
                             break;
 
                         case DIR:
+							if (argv.Length != 2)
+								RunCommand(writer, reader, "LIST", "foo");
+							RunCommand(writer, reader, "LIST", argv[1]);
                             break;
 
                         case GET:
+							if (argv.Length != 2)
+								RunCommand(writer, reader, "RETR", "foo");
+							RunCommand(writer, reader, "RETR", argv[1]);
                             break;
 
                         case HELP:
@@ -214,26 +237,31 @@ namespace FTP
                             break;
 
                         case PASSIVE:
+							RunCommand(writer, reader, "PASV");
                             break;
 
                         case PUT:
+							if (argv.Length != 2)
+								RunCommand(writer, reader, "APPE", "foo");
+							RunCommand(writer, reader, "APPE", argv[1]);
                             break;
 
                         case PWD:
 							if (argv.Length == 2)
 							{
-								RunCommand(writer, reader, argv[0], argv[1]);
+								RunCommand(writer, reader, "PWD", argv[1]);
 							}
                             break;
 
                         case QUIT:
+							RunCommand(writer, reader, "QUIT");
                             eof = true;
                             break;
 
                         case USER:
 							if (argv.Length == 2)
 							{
-								RunCommand(writer, reader, argv[0], argv[1]);
+								RunCommand(writer, reader, "USER", argv[1]);
 							}
                             break;
 
@@ -252,17 +280,9 @@ namespace FTP
 				writer.Write(command + LINEEND);
 			else
 				writer.Write(command + " " + arg1 + LINEEND);
-
-			while (true)
-			{
-				String output = reader.ReadLine();
-				Console.WriteLine(output);
-
-				// Check for end of message.
-				string[] outp = output.Split(' ');
-				if (!outp[0].EndsWith("-"))
-					break;
-			}
+			
+			writer.Flush();
+			ReadOutput(reader);
 		}
 
 		public static void ReadOutput(StreamReader reader)
