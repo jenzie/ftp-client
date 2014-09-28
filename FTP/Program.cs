@@ -223,11 +223,15 @@ namespace FTP
 
                         case DIR:
 							// Use PORT command before LIST.
-							if (!passive)
-							{
-								writer.Write("PORT" + LINEEND);
-								ReadOutput(reader);
-							}
+							//if (!passive)
+							//{
+							//	String arg = null;
+							//	IPAddress[] addr = System.Net.Dns.GetHostAddresses(server);
+							//	arg = addr[0].ToString().Replace(".", ",") + ",201,253";
+							//	Console.WriteLine("arg: " + arg);
+							//	writer.Write("PORT" + " " + arg + LINEEND);
+							//	//ReadOutput(reader); // No output
+							//}
 
 							// Run LIST for both if/else.
 							RunCommand(writer, reader, "LIST");
@@ -251,12 +255,12 @@ namespace FTP
 							if (passive)
 							{
 								passive = false;
-								Console.WriteLine("Passive mode on.");
+								Console.WriteLine("Passive mode off.");
 							}
 							else
 							{
 								passive = true;
-								Console.WriteLine("Passive mode off.");
+								Console.WriteLine("Passive mode on.");
 							}
 							RunCommand(writer, reader, "PASV");
                             break;
