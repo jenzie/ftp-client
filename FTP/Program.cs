@@ -80,7 +80,7 @@ namespace FTP
         static void Main(string[] args)
         {
 			bool debug = false;
-			bool binary = true;
+			bool passive = false;
             bool eof = false;
             String input = null;
 			String server = null;
@@ -148,7 +148,6 @@ namespace FTP
 			Console.WriteLine("Remote system type is " + output.Split(' ')[1]);
 
 			// Display the default file transfer mode.
-			binary = true;
 			writer.Write("TYPE I" + LINEEND);
 			writer.Flush();
 			reader.ReadLine();
@@ -190,14 +189,12 @@ namespace FTP
 							if (debug)
 								Console.WriteLine("---> TYPE A");
 							RunCommand(writer, reader, "TYPE A");
-							binary = false;
                             break;
 
                         case BINARY:
 							if (debug)
 								Console.WriteLine("---> TYPE I");
 							RunCommand(writer, reader, "TYPE I");
-							binary = true;
                             break;
 
                         case CD:
@@ -212,11 +209,27 @@ namespace FTP
                             break;
 
                         case DEBUG:
-							debug = debug ? false : true;
-							Console.WriteLine("Debugging on (debug=1).");
+							if (debug)
+							{
+								debug = false;
+								Console.WriteLine("Debugging on (debug=0).");
+							}
+							else
+							{
+								debug = true;
+								Console.WriteLine("Debugging on (debug=1).");
+							}
                             break;
 
                         case DIR:
+							// Use PORT command before LIST.
+							if (!passive)
+							{
+								writer.Write("PORT" + LINEEND);
+								ReadOutput(reader);
+							}
+
+							// Run LIST for both if/else.
 							RunCommand(writer, reader, "LIST");
                             break;
 
@@ -235,6 +248,16 @@ namespace FTP
                             break;
 
                         case PASSIVE:
+							if (passive)
+							{
+								passive = false;
+								Console.WriteLine("Passive mode on.");
+							}
+							else
+							{
+								passive = true;
+								Console.WriteLine("Passive mode off.");
+							}
 							RunCommand(writer, reader, "PASV");
                             break;
 
@@ -281,12 +304,13 @@ namespace FTP
 			ReadOutput(reader);
 		}
 
-		public static void ReadOutput(StreamReader reader)
+		public static void ReadOutput(StreamReader reader, bool print = true)
 		{
 			while (true)
 			{
 				String output = reader.ReadLine();
-				Console.WriteLine(output);
+				if (print)
+					Console.WriteLine(output);
 
 				// Check for end of message.
 				string[] outp = output.Split(' ');
