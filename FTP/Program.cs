@@ -202,14 +202,12 @@ namespace FTP
 
                         case CD:
 							if (argv.Length != 2)
-								RunCommand(writer, reader, "CWD", "foo");
+								Console.WriteLine("Usage: CD <path>");
 							RunCommand(writer, reader, "CWD", argv[1]);
                             break;
 
                         case CDUP:
-							if (argv.Length != 2)
-								RunCommand(writer, reader, "CDUP", "foo");
-							RunCommand(writer, reader, "CDUP", argv[1]);
+							RunCommand(writer, reader, "CDUP");
                             break;
 
                         case DEBUG:
@@ -218,14 +216,12 @@ namespace FTP
                             break;
 
                         case DIR:
-							if (argv.Length != 2)
-								RunCommand(writer, reader, "LIST", "foo");
-							RunCommand(writer, reader, "LIST", argv[1]);
+							RunCommand(writer, reader, "LIST");
                             break;
 
                         case GET:
 							if (argv.Length != 2)
-								RunCommand(writer, reader, "RETR", "foo");
+								Console.WriteLine("Usage: GET <filename>");
 							RunCommand(writer, reader, "RETR", argv[1]);
                             break;
 
@@ -242,15 +238,12 @@ namespace FTP
 
                         case PUT:
 							if (argv.Length != 2)
-								RunCommand(writer, reader, "APPE", "foo");
+								Console.WriteLine("Usage: PUT <filename>");
 							RunCommand(writer, reader, "APPE", argv[1]);
                             break;
 
                         case PWD:
-							if (argv.Length == 2)
-							{
-								RunCommand(writer, reader, "PWD", argv[1]);
-							}
+							RunCommand(writer, reader, "PWD");
                             break;
 
                         case QUIT:
@@ -259,10 +252,9 @@ namespace FTP
                             break;
 
                         case USER:
-							if (argv.Length == 2)
-							{
-								RunCommand(writer, reader, "USER", argv[1]);
-							}
+							if (argv.Length != 2)
+								Console.WriteLine("Usage: USER <username>");
+							RunCommand(writer, reader, "USER", argv[1]);
                             break;
 
                         default:
