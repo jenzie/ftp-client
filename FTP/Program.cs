@@ -203,7 +203,8 @@ namespace FTP
                         case CD:
 							if (argv.Length != 2)
 								Console.WriteLine("Usage: CD <path>");
-							RunCommand(writer, reader, "CWD", argv[1]);
+							else
+								RunCommand(writer, reader, "CWD", argv[1]);
                             break;
 
                         case CDUP:
@@ -222,7 +223,8 @@ namespace FTP
                         case GET:
 							if (argv.Length != 2)
 								Console.WriteLine("Usage: GET <filename>");
-							RunCommand(writer, reader, "RETR", argv[1]);
+							else
+								RunCommand(writer, reader, "RETR", argv[1]);
                             break;
 
                         case HELP:
@@ -239,7 +241,8 @@ namespace FTP
                         case PUT:
 							if (argv.Length != 2)
 								Console.WriteLine("Usage: PUT <filename>");
-							RunCommand(writer, reader, "APPE", argv[1]);
+							else
+								RunCommand(writer, reader, "APPE", argv[1]);
                             break;
 
                         case PWD:
@@ -254,7 +257,8 @@ namespace FTP
                         case USER:
 							if (argv.Length != 2)
 								Console.WriteLine("Usage: USER <username>");
-							RunCommand(writer, reader, "USER", argv[1]);
+							else
+								RunCommand(writer, reader, "USER", argv[1]);
                             break;
 
                         default:
