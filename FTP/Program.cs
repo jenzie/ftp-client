@@ -8,6 +8,7 @@
  */
 using System;
 using System.IO;
+using System.Net;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
 
@@ -76,11 +77,8 @@ namespace FTP
 
 
 
-
-
         static void Main(string[] args)
         {
-            //Scanner in = new Scanner( System.in );
 			bool debug = false;
 			bool binary = true;
             bool eof = false;
@@ -91,7 +89,7 @@ namespace FTP
 			StreamReader reader = null;
 			StreamWriter writer = null;
 
-            // Handle the command line stuff
+            // Handle the command line.
 
 			if (args.Length == 1)
 			{
@@ -103,6 +101,9 @@ namespace FTP
 					stream = connection.GetStream();
 					reader = new StreamReader(stream);
 					writer = new StreamWriter(stream);
+
+					// Display the welcome text.
+					ReadOutput(reader);
 				}
 				catch (ArgumentNullException e)
 				{
@@ -126,33 +127,21 @@ namespace FTP
 				Environment.Exit(1);
 			}
 
-			// Have the user log in.
-			while (!reader.EndOfStream)
-			{
-				Console.WriteLine(reader.ReadLine());
-			}
-
+			// Have the user log in with the username.
 			Console.WriteLine("Name (" + server + ":" + Environment.UserName + "): ");
-
-			if (connection.Connected)
-				Console.WriteLine("connected");
-			else
-				Console.WriteLine("not connected");
-
-			writer.Write("anonymous" + LINEEND);
-			Console.WriteLine(reader.ReadLine());
-			writer.Write("blah" + LINEEND);
+			String user = Console.ReadLine();
+			writer.Write("USER " + user.Trim() + LINEEND);
 			writer.Flush();
-			Console.WriteLine(reader.ReadLine());
-			while (!reader.EndOfStream)
-			{
-				Console.WriteLine("5");
-				Console.WriteLine(reader.ReadLine());
-			}
+			ReadOutput(reader);
 
-			//if (Console.ReadLine().Equals(""))
+			// Have the user log in with the password.
+			Console.WriteLine("Password: ");
+			String password = Console.ReadLine();
+			writer.Write("PASS " + password.Trim() + LINEEND);
+			writer.Flush();
+			ReadOutput(reader);
 
-            // Command line is done - accept commands
+            // Command line is done - accept commands.
             do
             {
                 try
@@ -166,7 +155,7 @@ namespace FTP
                     eof = true;
                 }
 
-                // Keep going if we have not hit end of file
+                // Keep going if we have not hit end of file.
                 if (!eof && input.Length > 0)
                 {
                     int cmd = -1;
@@ -181,16 +170,16 @@ namespace FTP
                         }
                     }
 
-                    // Execute the command
+                    // Execute the command.
                     switch (cmd)
                     {
                         case ASCII:
-							runCommand(writer, reader, argv[0]);
+							RunCommand(writer, reader, argv[0]);
 							binary = false;
                             break;
 
                         case BINARY:
-							runCommand(writer, reader, argv[0]);
+							RunCommand(writer, reader, argv[0]);
 							binary = true;
                             break;
 
@@ -225,7 +214,7 @@ namespace FTP
                         case PWD:
 							if (argv.Length == 2)
 							{
-								runCommand(writer, reader, argv[0], argv[1]);
+								RunCommand(writer, reader, argv[0], argv[1]);
 							}
                             break;
 
@@ -236,7 +225,7 @@ namespace FTP
                         case USER:
 							if (argv.Length == 2)
 							{
-								runCommand(writer, reader, argv[0], argv[1]);
+								RunCommand(writer, reader, argv[0], argv[1]);
 							}
                             break;
 
@@ -248,7 +237,7 @@ namespace FTP
             } while (!eof);
         }
 
-		public static void runCommand(StreamWriter writer, StreamReader reader, 
+		public static void RunCommand(StreamWriter writer, StreamReader reader, 
 			String command, String arg1 = null)
 		{
 			if (arg1 == null)
@@ -256,6 +245,20 @@ namespace FTP
 			else
 				writer.Write(command + " " + arg1 + LINEEND);
 
+			while (true)
+			{
+				String output = reader.ReadLine();
+				Console.WriteLine(output);
+
+				// Check for end of message.
+				string[] outp = output.Split(' ');
+				if (!outp[0].EndsWith("-"))
+					break;
+			}
+		}
+
+		public static void ReadOutput(StreamReader reader)
+		{
 			while (true)
 			{
 				String output = reader.ReadLine();
