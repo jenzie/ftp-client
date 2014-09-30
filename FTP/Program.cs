@@ -85,9 +85,13 @@ namespace FTP
             String input = null;
 			String server = null;
 			TcpClient connection = null;
+			TcpClient client = null;
+			TcpListener listener = null;
 			NetworkStream stream = null;
-			StreamReader reader = null;
-			StreamWriter writer = null;
+			StreamReader mreader = null;
+			StreamWriter mwriter = null;
+			NetworkStream dstream = null;
+			StreamReader dreader = null;
 
             // Handle the command line.
 
@@ -99,11 +103,13 @@ namespace FTP
 					// Try to connect to the given server and port.
 					connection = new TcpClient(server, PORT);
 					stream = connection.GetStream();
-					reader = new StreamReader(stream);
-					writer = new StreamWriter(stream);
+					mreader = new StreamReader(stream);
+					mwriter = new StreamWriter(stream);
+					listener = new TcpListener(IPAddress.Any, 0);
+					listener.Start(); // Start listening for incoming connection requests.
 
 					// Display the welcome text.
-					ReadOutput(reader);
+					ReadOutput(mreader);
 				}
 				catch (ArgumentNullException e)
 				{
@@ -130,27 +136,27 @@ namespace FTP
 			// Have the user log in with the username.
 			Console.Write("Name (" + server + ":" + Environment.UserName + "): ");
 			String user = Console.ReadLine();
-			writer.Write("USER " + user.Trim() + LINEEND);
-			writer.Flush();
-			ReadOutput(reader);
+			mwriter.Write("USER " + user.Trim() + LINEEND);
+			mwriter.Flush();
+			ReadOutput(mreader);
 
 			// Have the user log in with the password.
 			Console.Write("Password: ");
 			String password = Console.ReadLine();
-			writer.Write("PASS " + password.Trim() + LINEEND);
-			writer.Flush();
-			ReadOutput(reader);
+			mwriter.Write("PASS " + password.Trim() + LINEEND);
+			mwriter.Flush();
+			ReadOutput(mreader);
 
 			// Display the system type.
-			writer.Write("SYST" + LINEEND);
-			writer.Flush();
-			String output = reader.ReadLine();
+			mwriter.Write("SYST" + LINEEND);
+			mwriter.Flush();
+			String output = mreader.ReadLine();
 			Console.WriteLine("Remote system type is " + output.Split(' ')[1]);
 
 			// Display the default file transfer mode.
-			writer.Write("TYPE I" + LINEEND);
-			writer.Flush();
-			reader.ReadLine();
+			mwriter.Write("TYPE I" + LINEEND);
+			mwriter.Flush();
+			mreader.ReadLine();
 			Console.WriteLine("Using binary mode to transfer files.");
 
             // Command line is done - accept commands.
@@ -188,24 +194,24 @@ namespace FTP
                         case ASCII:
 							if (debug)
 								Console.WriteLine("---> TYPE A");
-							RunCommand(writer, reader, "TYPE A");
+							RunCommand(mwriter, mreader, "TYPE A");
                             break;
 
                         case BINARY:
 							if (debug)
 								Console.WriteLine("---> TYPE I");
-							RunCommand(writer, reader, "TYPE I");
+							RunCommand(mwriter, mreader, "TYPE I");
                             break;
 
                         case CD:
 							if (argv.Length != 2)
 								Console.WriteLine("Usage: CD <path>");
 							else
-								RunCommand(writer, reader, "CWD", argv[1]);
+								RunCommand(mwriter, mreader, "CWD", argv[1]);
                             break;
 
                         case CDUP:
-							RunCommand(writer, reader, "CDUP");
+							RunCommand(mwriter, mreader, "CDUP");
                             break;
 
                         case DEBUG:
@@ -222,26 +228,38 @@ namespace FTP
                             break;
 
                         case DIR:
+							if (debug)
+								Console.WriteLine("---> LIST");
+
 							// Use PORT command before LIST.
-							//if (!passive)
-							//{
-							//	String arg = null;
-							//	IPAddress[] addr = System.Net.Dns.GetHostAddresses(server);
-							//	arg = addr[0].ToString().Replace(".", ",") + ",201,253";
-							//	Console.WriteLine("arg: " + arg);
-							//	writer.Write("PORT" + " " + arg + LINEEND);
-							//	//ReadOutput(reader); // No output
-							//}
+							if (!passive)
+							{
+								String arg = null;
+								IPAddress[] addr = System.Net.Dns.GetHostAddresses(server);
+								arg = addr[0].ToString().Replace(".", ",") + ",201,253";
+								Console.WriteLine("arg: " + arg);
+								//String porta = (IPEndPoint)listener.LocalEndpoint.Port.ToString();
+								mwriter.Write("PORT" + " " + arg + LINEEND);
+
+								IPEndPoint endPoint = (IPEndPoint)connection.Client.RemoteEndPoint;
+								int port = endPoint.Port;
+								Console.WriteLine("port: " + port);
+								//ReadOutput(reader); // No output
+
+								client = listener.AcceptTcpClient();
+							}
 
 							// Run LIST for both if/else.
-							RunCommand(writer, reader, "LIST");
+							RunCommand(mwriter, mreader, "LIST");
+							ReadOutput(dreader);
+							ReadOutput(mreader);
                             break;
 
                         case GET:
 							if (argv.Length != 2)
 								Console.WriteLine("Usage: GET <filename>");
 							else
-								RunCommand(writer, reader, "RETR", argv[1]);
+								RunCommand(mwriter, mreader, "RETR", argv[1]);
                             break;
 
                         case HELP:
@@ -261,23 +279,47 @@ namespace FTP
 							{
 								passive = true;
 								Console.WriteLine("Passive mode on.");
+								mwriter.Write("PASV" + LINEEND);
+								mwriter.Flush();
+
+								while (true)
+								{
+									String output1 = mreader.ReadLine();
+									Console.WriteLine(output1);
+
+									// Parse the PASV output to get the port.
+									string[] port = output1.Split(',');
+									int p1 = Convert.ToInt32(port[port.Length - 2]);
+									int p2 = Convert.ToInt32(port[port.Length - 1].TrimEnd(')'));
+									int p3 = (p1 * 256) + p2;
+
+									// Use the ip and new port to create new tcpclient connection.
+									client = new TcpClient(server, p3);
+									dstream = client.GetStream();
+									dreader = new StreamReader(dstream);
+
+									// Check for end of message.
+									string[] outp = output1.Split(' ');
+									if (!outp[0].EndsWith("-"))
+										break;
+								}
 							}
-							RunCommand(writer, reader, "PASV");
+							//RunCommand(writer, reader, "PASV");
                             break;
 
                         case PUT:
 							if (argv.Length != 2)
 								Console.WriteLine("Usage: PUT <filename>");
 							else
-								RunCommand(writer, reader, "APPE", argv[1]);
+								RunCommand(mwriter, mreader, "APPE", argv[1]);
                             break;
 
                         case PWD:
-							RunCommand(writer, reader, "PWD");
+							RunCommand(mwriter, mreader, "PWD");
                             break;
 
                         case QUIT:
-							RunCommand(writer, reader, "QUIT");
+							RunCommand(mwriter, mreader, "QUIT");
                             eof = true;
                             break;
 
@@ -285,7 +327,7 @@ namespace FTP
 							if (argv.Length != 2)
 								Console.WriteLine("Usage: USER <username>");
 							else
-								RunCommand(writer, reader, "USER", argv[1]);
+								RunCommand(mwriter, mreader, "USER", argv[1]);
                             break;
 
                         default:
