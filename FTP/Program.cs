@@ -92,7 +92,10 @@ namespace FTP
 			StreamWriter mwriter = null;
 			NetworkStream dstream = null;
 			StreamReader dreader = null;
+			Stream strm = null;
+			StreamReader strmreader = null;
 			int randomport = new Random().Next(1025, 65535);
+			int filesize = 0;
 
             // Handle the command line.
 
@@ -242,6 +245,14 @@ namespace FTP
 								Console.WriteLine("arg: " + arg);
 								//String porta = (IPEndPoint)listener.LocalEndpoint.Port.ToString();
 								mwriter.Write("PORT" + " " + arg + LINEEND);
+								mwriter.Flush();
+
+								ReadOutput(mreader);
+
+								// Use the server and new port to create new TcpClient connection to transmit data.
+								client = new TcpClient(server, randomport);
+								dstream = client.GetStream();
+								dreader = new StreamReader(dstream);
 
 								//IPEndPoint endPoint = (IPEndPoint)connection.Client.RemoteEndPoint;
 								//int port = endPoint.Port;
@@ -329,10 +340,33 @@ namespace FTP
 								}
 
 								// Run RETR for both if/else.
-								RunCommand(mwriter, mreader, "RETR", argv[1]);
+								mwriter.Write("RETR " + argv[1] + LINEEND);
+								mwriter.Flush();
+								//RunCommand(mwriter, mreader, "RETR", argv[1]);
+
+								// Get the size of the file being transferred.
+								String output2 = null;
+								while (true)
+								{
+									output2 = mreader.ReadLine();
+									Console.WriteLine(output2);
+
+									// Check for end of message.
+									string[] outp = output2.Split(' ');
+									if (!outp[0].EndsWith("-"))
+										break;
+								}
+
+								// Get the file size.
+								string[] outarr = output2.Split(' ');
+								filesize = Convert.ToInt32(outarr[outarr.Length - 2].TrimStart('('));
+
 								ReadOutput(dreader);
 								ReadOutput(mreader);
 								dreader.ReadLine();
+
+								strm = connection.GetStream();
+								ReadFileTransfer(strm, filesize, argv[1]);
 							}
 								
                             break;
@@ -425,6 +459,21 @@ namespace FTP
 				if (!outp[0].EndsWith("-"))
 					break;
 			}
+		}
+
+		public static void ReadFileTransfer(Stream stream, int size, String filename)
+		{
+			byte[] buffer = new byte[size];
+			FileStream filestream = new FileStream(
+				Environment.CurrentDirectory + "\\" + filename, 
+				FileMode.Create, FileAccess.ReadWrite);
+
+			// Keep reading until you read 0 bytes.
+			while (stream.Read(buffer, 0, buffer.Length) != 0)
+			{
+				filestream.Write(buffer, 0, buffer.Length);
+			}
+			filestream.Close();
 		}
     }
 }
