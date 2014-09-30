@@ -259,7 +259,19 @@ namespace FTP
 							if (argv.Length != 2)
 								Console.WriteLine("Usage: GET <filename>");
 							else
+							{
+								if (!passive)
+								{
+									// Use PORT command before RETR command.
+								}
+
+								// Run RETR for both if/else.
 								RunCommand(mwriter, mreader, "RETR", argv[1]);
+								ReadOutput(dreader);
+								ReadOutput(mreader);
+								dreader.ReadLine();
+							}
+								
                             break;
 
                         case HELP:
@@ -293,7 +305,7 @@ namespace FTP
 									int p2 = Convert.ToInt32(port[port.Length - 1].TrimEnd(')'));
 									int p3 = (p1 * 256) + p2;
 
-									// Use the ip and new port to create new tcpclient connection.
+									// Use the server and new port to create new TcpClient connection to transmit data.
 									client = new TcpClient(server, p3);
 									dstream = client.GetStream();
 									dreader = new StreamReader(dstream);
