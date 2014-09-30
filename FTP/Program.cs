@@ -382,7 +382,7 @@ namespace FTP
 								dreader.ReadLine();
 
 								// Copy the file.
-								strm = mclient.GetStream();
+								strm = dclient.GetStream();
 								ReadFileTransfer(strm, filesize, argv[1]);
 							}
 								
