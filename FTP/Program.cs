@@ -79,34 +79,25 @@ namespace FTP
 
         static void Main(string[] args)
         {
-			bool debug = false;
-			bool passive = false;
-            bool eof = false;
-            String input = null;
-			String server = null;
-			TcpClient connection = null;
-			TcpClient client = null;
+			bool debug = false, passive = false, eof = false;
+            String input = null, server = null;
+			TcpClient mclient = null, dclient = null;
 			TcpListener listener = null;
-			NetworkStream stream = null;
-			StreamReader mreader = null;
+			NetworkStream stream = null, dstream = null;
+			StreamReader mreader = null, dreader = null;
 			StreamWriter mwriter = null;
-			NetworkStream dstream = null;
-			StreamReader dreader = null;
 			Stream strm = null;
-			StreamReader strmreader = null;
-			int randomport = new Random().Next(1025, 65535);
-			int filesize = 0;
+			int randomport = new Random().Next(1025, 65535), filesize = 0;
 
             // Handle the command line.
-
 			if (args.Length == 1)
 			{
 				server = args[0];
 				try
 				{
 					// Try to connect to the given server and port.
-					connection = new TcpClient(server, PORT);
-					stream = connection.GetStream();
+					mclient = new TcpClient(server, PORT);
+					stream = mclient.GetStream();
 					mreader = new StreamReader(stream);
 					mwriter = new StreamWriter(stream);
 					listener = new TcpListener(IPAddress.Any, 0);
@@ -232,9 +223,6 @@ namespace FTP
                             break;
 
                         case DIR:
-							if (debug)
-								Console.WriteLine("---> LIST");
-
 							// Use PORT command before LIST.
 							if (!passive)
 							{
@@ -242,16 +230,19 @@ namespace FTP
 								IPAddress[] addr = System.Net.Dns.GetHostAddresses(server);
 								arg = addr[0].ToString().Replace(".", ",") + "," +
 									(randomport / 256).ToString() + "," + (randomport % 256).ToString();
-								Console.WriteLine("arg: " + arg);
 								//String porta = (IPEndPoint)listener.LocalEndpoint.Port.ToString();
+
+								if (debug)
+									Console.WriteLine("---> PORT " + arg);
+
 								mwriter.Write("PORT" + " " + arg + LINEEND);
 								mwriter.Flush();
 
 								ReadOutput(mreader);
 
 								// Use the server and new port to create new TcpClient connection to transmit data.
-								client = new TcpClient(server, randomport);
-								dstream = client.GetStream();
+								dclient = new TcpClient(server, randomport);
+								dstream = dclient.GetStream();
 								dreader = new StreamReader(dstream);
 
 								//IPEndPoint endPoint = (IPEndPoint)connection.Client.RemoteEndPoint;
@@ -265,6 +256,8 @@ namespace FTP
 							}
 							else
 							{
+								if (debug)
+									Console.WriteLine("---> PASV");
 								mwriter.Write("PASV" + LINEEND);
 								mwriter.Flush();
 
@@ -280,8 +273,8 @@ namespace FTP
 									int p3 = (p1 * 256) + p2;
 
 									// Use the server and new port to create new TcpClient connection to transmit data.
-									client = new TcpClient(server, p3);
-									dstream = client.GetStream();
+									dclient = new TcpClient(server, p3);
+									dstream = dclient.GetStream();
 									dreader = new StreamReader(dstream);
 
 									// Check for end of message.
@@ -292,6 +285,9 @@ namespace FTP
 							}
 
 							// Run LIST for both if/else.
+							if (debug)
+								Console.WriteLine("---> LIST");
+
 							RunCommand(mwriter, mreader, "LIST");
 							ReadOutput(dreader);
 							ReadOutput(mreader);
@@ -302,6 +298,15 @@ namespace FTP
 								Console.WriteLine("Usage: GET <filename>");
 							else
 							{
+								// Write debug message.
+								if (debug)
+									Console.WriteLine("local: " + argv[1] + " remote: " + argv[1]);
+
+								// Switch to binary mode.
+								if (debug)
+									Console.WriteLine("---> TYPE I");
+								RunCommand(mwriter, mreader, "TYPE I");
+
 								if (!passive)
 								{
 									// Use PORT command before RETR command.
@@ -309,10 +314,18 @@ namespace FTP
 									IPAddress[] addr = System.Net.Dns.GetHostAddresses(server);
 									arg = addr[0].ToString().Replace(".", ",") + "," +
 										(randomport / 256).ToString() + "," + (randomport % 256).ToString();
+									
+									if (debug)
+										Console.WriteLine("---> PORT " + arg);
+
 									mwriter.Write("PORT" + " " + arg + LINEEND);
+									mwriter.Flush();
 								}
 								else
 								{
+									if (debug)
+										Console.WriteLine("---> PASV");
+
 									mwriter.Write("PASV" + LINEEND);
 									mwriter.Flush();
 
@@ -328,8 +341,8 @@ namespace FTP
 										int p3 = (p1 * 256) + p2;
 
 										// Use the server and new port to create new TcpClient connection to transmit data.
-										client = new TcpClient(server, p3);
-										dstream = client.GetStream();
+										dclient = new TcpClient(server, p3);
+										dstream = dclient.GetStream();
 										dreader = new StreamReader(dstream);
 
 										// Check for end of message.
@@ -340,9 +353,11 @@ namespace FTP
 								}
 
 								// Run RETR for both if/else.
+								if (debug)
+									Console.WriteLine("---> RETR " + argv[1]);
+
 								mwriter.Write("RETR " + argv[1] + LINEEND);
 								mwriter.Flush();
-								//RunCommand(mwriter, mreader, "RETR", argv[1]);
 
 								// Get the size of the file being transferred.
 								String output2 = null;
@@ -361,11 +376,13 @@ namespace FTP
 								string[] outarr = output2.Split(' ');
 								filesize = Convert.ToInt32(outarr[outarr.Length - 2].TrimStart('('));
 
+								// Read the rest of the server messages.
 								ReadOutput(dreader);
 								ReadOutput(mreader);
 								dreader.ReadLine();
 
-								strm = connection.GetStream();
+								// Copy the file.
+								strm = mclient.GetStream();
 								ReadFileTransfer(strm, filesize, argv[1]);
 							}
 								
@@ -440,6 +457,8 @@ namespace FTP
 				writer.Write(command + " " + arg + LINEEND);
 			
 			writer.Flush();
+
+			// Read the output of the server, and print it out.
 			ReadOutput(reader);
 		}
 
@@ -461,7 +480,15 @@ namespace FTP
 			}
 		}
 
-		public static void ReadFileTransfer(Stream stream, int size, String filename)
+		/**
+		 * ReadFileTransfer - Reads the bytes from the file transfer, and saves 
+		 * as a file in the current working directory.
+		 * stream - the stream to read the bytes of the file from.
+		 * size - the size of the file to be read.
+		 * filename - the name of the file to be read.
+		 */
+		public static void ReadFileTransfer(
+			Stream stream, int size, String filename)
 		{
 			byte[] buffer = new byte[size];
 			FileStream filestream = new FileStream(
@@ -473,6 +500,8 @@ namespace FTP
 			{
 				filestream.Write(buffer, 0, buffer.Length);
 			}
+
+			// Close the file stream, since we are done reading.
 			filestream.Close();
 		}
     }
