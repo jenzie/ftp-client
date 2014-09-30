@@ -92,6 +92,7 @@ namespace FTP
 			StreamWriter mwriter = null;
 			NetworkStream dstream = null;
 			StreamReader dreader = null;
+			int randomport = new Random().Next(1025, 65535);
 
             // Handle the command line.
 
@@ -236,17 +237,47 @@ namespace FTP
 							{
 								String arg = null;
 								IPAddress[] addr = System.Net.Dns.GetHostAddresses(server);
-								arg = addr[0].ToString().Replace(".", ",") + ",201,253";
+								arg = addr[0].ToString().Replace(".", ",") + "," +
+									(randomport / 256).ToString() + "," + (randomport % 256).ToString();
 								Console.WriteLine("arg: " + arg);
 								//String porta = (IPEndPoint)listener.LocalEndpoint.Port.ToString();
 								mwriter.Write("PORT" + " " + arg + LINEEND);
 
-								IPEndPoint endPoint = (IPEndPoint)connection.Client.RemoteEndPoint;
-								int port = endPoint.Port;
-								Console.WriteLine("port: " + port);
+								//IPEndPoint endPoint = (IPEndPoint)connection.Client.RemoteEndPoint;
+								//int port = endPoint.Port;
+								//Console.WriteLine("port: " + port);
 								//ReadOutput(reader); // No output
 
-								client = listener.AcceptTcpClient();
+								//client = listener.AcceptTcpClient();
+
+								randomport += 1;
+							}
+							else
+							{
+								mwriter.Write("PASV" + LINEEND);
+								mwriter.Flush();
+
+								while (true)
+								{
+									String output1 = mreader.ReadLine();
+									Console.WriteLine(output1);
+
+									// Parse the PASV output to get the port.
+									string[] port = output1.Split(',');
+									int p1 = Convert.ToInt32(port[port.Length - 2]);
+									int p2 = Convert.ToInt32(port[port.Length - 1].TrimEnd(')'));
+									int p3 = (p1 * 256) + p2;
+
+									// Use the server and new port to create new TcpClient connection to transmit data.
+									client = new TcpClient(server, p3);
+									dstream = client.GetStream();
+									dreader = new StreamReader(dstream);
+
+									// Check for end of message.
+									string[] outp = output1.Split(' ');
+									if (!outp[0].EndsWith("-"))
+										break;
+								}
 							}
 
 							// Run LIST for both if/else.
@@ -263,6 +294,38 @@ namespace FTP
 								if (!passive)
 								{
 									// Use PORT command before RETR command.
+									String arg = null;
+									IPAddress[] addr = System.Net.Dns.GetHostAddresses(server);
+									arg = addr[0].ToString().Replace(".", ",") + "," +
+										(randomport / 256).ToString() + "," + (randomport % 256).ToString();
+									mwriter.Write("PORT" + " " + arg + LINEEND);
+								}
+								else
+								{
+									mwriter.Write("PASV" + LINEEND);
+									mwriter.Flush();
+
+									while (true)
+									{
+										String output1 = mreader.ReadLine();
+										Console.WriteLine(output1);
+
+										// Parse the PASV output to get the port.
+										string[] port = output1.Split(',');
+										int p1 = Convert.ToInt32(port[port.Length - 2]);
+										int p2 = Convert.ToInt32(port[port.Length - 1].TrimEnd(')'));
+										int p3 = (p1 * 256) + p2;
+
+										// Use the server and new port to create new TcpClient connection to transmit data.
+										client = new TcpClient(server, p3);
+										dstream = client.GetStream();
+										dreader = new StreamReader(dstream);
+
+										// Check for end of message.
+										string[] outp = output1.Split(' ');
+										if (!outp[0].EndsWith("-"))
+											break;
+									}
 								}
 
 								// Run RETR for both if/else.
@@ -291,30 +354,6 @@ namespace FTP
 							{
 								passive = true;
 								Console.WriteLine("Passive mode on.");
-								mwriter.Write("PASV" + LINEEND);
-								mwriter.Flush();
-
-								while (true)
-								{
-									String output1 = mreader.ReadLine();
-									Console.WriteLine(output1);
-
-									// Parse the PASV output to get the port.
-									string[] port = output1.Split(',');
-									int p1 = Convert.ToInt32(port[port.Length - 2]);
-									int p2 = Convert.ToInt32(port[port.Length - 1].TrimEnd(')'));
-									int p3 = (p1 * 256) + p2;
-
-									// Use the server and new port to create new TcpClient connection to transmit data.
-									client = new TcpClient(server, p3);
-									dstream = client.GetStream();
-									dreader = new StreamReader(dstream);
-
-									// Check for end of message.
-									string[] outp = output1.Split(' ');
-									if (!outp[0].EndsWith("-"))
-										break;
-								}
 							}
 							//RunCommand(writer, reader, "PASV");
                             break;
