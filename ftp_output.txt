@@ -1,0 +1,173 @@
+ftp> jxz6853@glados:~$ ftp ftp.mozilla.org
+Connected to ftp1-zlb.vips.scl3.mozilla.com.
+220-
+220-   ftp.mozilla.org / archive.mozilla.org - files are in /pub/mozilla.org
+220-
+220-   releases.mozilla.org now points to our CDN distribution network and no longer works for FTP traffic
+220
+Name (ftp.mozilla.org:jxz6853): anonymous
+331 Please specify the password.
+Password:
+230-
+230-   ftp.mozilla.org / archive.mozilla.org - files are in /pub/mozilla.org
+230-
+230-   Notice: This server is the only place to obtain nightly builds and needs to
+230-   remain available to developers and testers. High bandwidth servers that
+230-   contain the public release files are available at http://releases.mozilla.org/
+230-   If you need to link to a public release, please link to the release server,
+230-   not here. Thanks!
+230-
+230-   Attempts to download high traffic release files from this server will get a
+230-   "550 Permission denied." response.
+230 Login successful.
+Remote system type is UNIX.
+Using binary mode to transfer files.
+ftp> ascii
+200 Switching to ASCII mode.
+ftp> binary
+200 Switching to Binary mode.
+ftp> cd ../
+250 Directory successfully changed.
+ftp> cdup
+250 Directory successfully changed.
+ftp> debug
+Debugging on (debug=1).
+ftp> ascii
+---> TYPE A
+200 Switching to ASCII mode.
+ftp> binary
+---> TYPE I
+200 Switching to Binary mode.
+ftp> cd ../
+---> CWD ../
+250 Directory successfully changed.
+ftp> cdup
+---> CDUP
+250 Directory successfully changed.
+ftp> dir
+---> TYPE A
+200 Switching to ASCII mode.
+ftp: setsockopt (ignored): Permission denied
+---> PORT 129,21,30,38,179,197
+200 PORT command successful. Consider using PASV.
+---> LIST
+150 Here comes the directory listing.
+-rw-r--r--    1 ftp      ftp           178 Apr 25 01:44 README
+-rw-r--r--    1 ftp      ftp           384 Apr 25 01:42 index.html
+drwxr-xr-x   41 ftp      ftp          4096 Mar 06  2014 pub
+226 Directory send OK.
+ftp> get
+(remote-file) ^C
+ftp> passive
+Passive mode on.
+ftp> pwd
+---> PWD
+257 "/"
+ftp> user
+(username)
+ftp> hhij
+?Invalid command
+ftp> quit
+---> QUIT
+
+
+ftp> debug
+Debugging on (debug=1).
+ftp> dir
+ftp: setsockopt (ignored): Permission denied
+---> PORT 129,21,208,2,224,56
+200 PORT command successful. Consider using PASV.
+---> LIST
+150 Here comes the directory listing.
+-rw-r--r--    1 ftp      ftp           178 Apr 25 01:44 README
+-rw-r--r--    1 ftp      ftp           384 Apr 25 01:42 index.html
+drwxr-xr-x   41 ftp      ftp          4096 Mar 06  2014 pub
+226 Directory send OK.
+ftp> pasv
+?Invalid command
+ftp> passive
+Passive mode on.
+ftp> dir
+ftp: setsockopt (ignored): Permission denied
+---> PASV
+227 Entered Passive Mode (63,245,215,56,201,253)
+---> LIST
+150 Here comes the directory listing.
+-rw-r--r--    1 ftp      ftp           178 Apr 25 01:44 README
+-rw-r--r--    1 ftp      ftp           384 Apr 25 01:42 index.html
+drwxr-xr-x   41 ftp      ftp          4096 Mar 06  2014 pub
+226 Directory send OK.
+ftp> debug
+Debugging off (debug=0).
+
+Using binary mode to transfer files.
+ftp> passive
+Passive mode on.
+ftp> get README
+local: README remote: README
+227 Entered Passive Mode (63,245,215,46,200,161)
+150 Opening BINARY mode data connection for README (178 bytes).
+226 Transfer complete.
+178 bytes received in 0.04 secs (4.5 kB/s)
+ftp> passive
+Passive mode off.
+ftp> get README
+local: README remote: README
+200 PORT command successful. Consider using PASV.
+150 Opening BINARY mode data connection for README (178 bytes).
+226 Transfer complete.
+178 bytes received in 0.02 secs (8.3 kB/s)
+
+Using binary mode to transfer files.
+ftp> passive
+Passive mode on.
+ftp> get README
+local: README remote: README
+227 Entered Passive Mode (63,245,215,46,200,161)
+150 Opening BINARY mode data connection for README (178 bytes).
+226 Transfer complete.
+178 bytes received in 0.04 secs (4.5 kB/s)
+ftp> passive
+Passive mode off.
+ftp> get README
+local: README remote: README
+200 PORT command successful. Consider using PASV.
+150 Opening BINARY mode data connection for README (178 bytes).
+226 Transfer complete.
+178 bytes received in 0.02 secs (8.3 kB/s)
+ftp> debug
+Debugging on (debug=1).
+ftp> passive
+Passive mode on.
+ftp> get README
+local: README remote: README
+ftp: setsockopt (ignored): Permission denied
+---> PASV
+227 Entered Passive Mode (63,245,215,46,200,192)
+---> RETR README
+150 Opening BINARY mode data connection for README (178 bytes).
+226 Transfer complete.
+178 bytes received in 0.04 secs (4.9 kB/s)
+ftp> passive
+Passive mode off.
+ftp> get README
+local: README remote: README
+ftp: setsockopt (ignored): Permission denied
+---> PORT 129,21,30,38,168,237
+200 PORT command successful. Consider using PASV.
+---> RETR README
+150 Opening BINARY mode data connection for README (178 bytes).
+226 Transfer complete.
+178 bytes received in 0.07 secs (2.3 kB/s)
+
+ftp> get README
+local: README remote: README
+---> TYPE I
+200 Switching to Binary mode.
+ftp: setsockopt (ignored): Permission denied
+---> PASV
+227 Entered Passive Mode (63,245,215,56,201,244)
+---> RETR README
+150 Opening BINARY mode data connection for README (178 bytes).
+226 Transfer complete.
+178 bytes received in 0.02 secs (10.4 kB/s)
